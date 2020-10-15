@@ -8,6 +8,7 @@
 # - [ ] pomo-session-time で何分か設定できる
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $CURRENT_DIR/scripts/helpers.sh
 
 tmux bind-key p run-shell "$CURRENT_DIR/scripts/pomo.sh start"
 tmux bind-key P run-shell "$CURRENT_DIR/scripts/pomo.sh stop"
@@ -21,22 +22,6 @@ pomo_commands=(
   "#($CURRENT_DIR/scripts/pomo.sh name)"
 )
 
-get_tmux_option() {
-  local option="$1"
-  local default_value="$2"
-  local option_value="$(tmux show-option -gqv "$option")"
-  if [ -z "$option_value" ]; then
-    echo "$default_value"
-  else
-    echo "$option_value"
-  fi
-}
-
-set_tmux_option() {
-  local option=$1
-  local value=$2
-  tmux set-option -gq "$option" "$value"
-}
 
 do_interpolation() {
   local all_interpolated="$1"
