@@ -7,16 +7,20 @@ session_start() {
 }
 
 session_stop() {
-  tmux display-message "POMODORO stopped."
+  tmux display-message "pomodoro stopped!!!"
   tmux set-environment -gu POMO_START_TIME
   tmux refresh-client -S
 }
 
 get_session_time() {
   local CURRENT_TIME=$(date +%s)
-  local START_TIME=$(tmux show-environment -g POMO_START_TIME | sed 's/POMO_START_TIME=//g')
-  local DIFFRENT=$(( $CURRENT_TIME - $START_TIME ))
-  echo $DIFFRENT | awk '{print strftime("%M:%S",$1)}'
+  local END_TIME=$(tmux show-environment -g POMO_END_TIME | sed 's/POMO_END_TIME=//g')
+  local DIFFRENT=$(echo $(( $END_TIME - $CURRENT_TIME )) | awk '{print strftime("%M",$1)}')
+  if [ $DIFFRENT -lt 0 ]; then
+    session_stop
+  else
+    echo $DIFFRENT
+  fi
 }
 
 get_session_name() {
