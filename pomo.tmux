@@ -6,6 +6,10 @@
 # - [x] P で stop
 # - [ ] pomo-session-time で何分か設定できる
 # - [ ] pomo が start してないときに、option で表示した文字列を氷頭する
+# - [ ] pomodoro finish 時に、tmux 画面上に時計を出す
+# - [ ] pomodoro finish 時に、message 通知を出す
+#   - [ ] Mac
+#   - [ ] Windows
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $CURRENT_DIR/scripts/helpers.sh
