@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SESSION_NAME=$1
+SESSION_NAME=$*
 if [ -n "$SESSION_NAME" ];then
   echo $SESSION_NAME > $HOME/.tmux-pomo
 fi
