@@ -13,13 +13,18 @@ session_stop() {
 }
 
 get_session_time() {
-  local CURRENT_TIME=$(date +%s)
   local END_TIME=$(tmux show-environment -g POMO_END_TIME | sed 's/POMO_END_TIME=//g')
-  local DIFFRENT=$(echo $(( $END_TIME - $CURRENT_TIME )) | awk '{print strftime("%M",$1)}')
-  if [ $DIFFRENT -lt 0 ]; then
-    session_stop
+  if [ -z $END_TIME ];then
+    # option で指定した文字列を表示する
+    echo tmux
   else
-    echo $DIFFRENT
+    local CURRENT_TIME=$(date +%s)
+    local DIFFRENT=$(echo $(( $END_TIME - $CURRENT_TIME )))
+    if [ $DIFFRENT -lt 0 ]; then
+      session_stop
+    else
+      echo $DIFFRENT | awk '{print strftime("%M:%S",$1)}'
+    fi
   fi
 }
 

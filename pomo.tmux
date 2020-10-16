@@ -4,8 +4,8 @@
 # - [x] p で status-bar で文字入力を行い、その名前のセッションをスタート
 # - [x] start time を変数に保存し、差分で残り時間を num で表示する
 # - [x] P で stop
-# - [ ] 1sec ごとに画面更新
 # - [ ] pomo-session-time で何分か設定できる
+# - [ ] pomo が start してないときに、option で表示した文字列を氷頭する
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $CURRENT_DIR/scripts/helpers.sh
