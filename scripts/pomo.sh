@@ -7,17 +7,19 @@ session_start() {
 }
 
 session_stop() {
-  tmux display-message "pomodoro stopped!!!"
+  tmux display-message "POMODORO stopped!!!"
   tmux set-environment -gu POMO_START_TIME
+  tmux set-environment -g POMO_SESSION 0
   tmux refresh-client -S
 }
 
 get_session_time() {
-  local END_TIME=$(tmux show-environment -g POMO_END_TIME | sed 's/POMO_END_TIME=//g')
-  if [ -z $END_TIME ];then
+    local POMO_SESSION=$(tmux show-environment -g POMO_SESSION)
+  if [ $POMO_SESSION == "POMO_SESSION=0" ];then
     # option で指定した文字列を表示する
     echo tmux
   else
+    local END_TIME=$(tmux show-environment -g POMO_END_TIME | sed 's/POMO_END_TIME=//g')
     local CURRENT_TIME=$(date +%s)
     local DIFFRENT=$(echo $(( $END_TIME - $CURRENT_TIME )))
     if [ $DIFFRENT -lt 0 ]; then
@@ -29,9 +31,7 @@ get_session_time() {
 }
 
 get_session_name() {
-  tmux show-environment -g POMO_SESSION_NAME
-  local SESSION_NAME=$(tmux show-environment -g POMO_SESSION_NAME | sed 's/POMO_SESSION_NAME=//g')
-  echo $SESSION_NAME
+  cat $HOME/.tmux-pomo
 }
 
 
