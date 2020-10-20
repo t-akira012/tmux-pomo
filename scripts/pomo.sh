@@ -35,7 +35,7 @@ get_session_time() {
     fi
   else
     local FINISHED=$(tmux show-environment -g POMO_FINISHED | sed 's/POMO_FINISHED=//g')
-    echo f:$FINISHED
+    echo tmux
   fi
 }
 
