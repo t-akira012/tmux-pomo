@@ -18,12 +18,14 @@ tmux bind-key p run-shell "$CURRENT_DIR/scripts/pomo.sh start"
 tmux bind-key P run-shell "$CURRENT_DIR/scripts/pomo.sh stop"
 
 pomo_interpolation=(
-  "\#{pomo_time}"
+  "\#{pomo_status}"
   "\#{pomo_name}"
+  "\#{pomo_color}"
 )
 pomo_commands=(
-  "#($CURRENT_DIR/scripts/pomo.sh time)"
+  "#($CURRENT_DIR/scripts/pomo.sh status)"
   "#($CURRENT_DIR/scripts/pomo.sh name)"
+  "#($CURRENT_DIR/scripts/pomo.sh color)"
 )
 
 
