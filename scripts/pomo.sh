@@ -5,6 +5,7 @@ CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 session_start() {
   tmux command-prompt -p "POMO:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
   tmux set -g status-interval 1
+  tmux refresh-client -S
 }
 
 session_finish() {
