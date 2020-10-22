@@ -15,6 +15,7 @@ session_finish() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
+  pop_message
 }
 session_stop() {
   tmux display-message "POMODORO stopped."
@@ -23,6 +24,7 @@ session_stop() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
+  pop_message
 }
 
 session_status() {
@@ -67,7 +69,15 @@ get_pomodoro_time(){
 get_finished_text(){
     # 終業時間を表示
     local FINISHED=$(tmux show-environment -g POMO_FINISHED | sed 's/POMO_FINISHED=//g')
-    echo $(( ( $(date -d "18:30" +%s ) - $(date +%s) ) /60 )) | awk '{print strftime("%M:%S",$1)}'
+    echo Last Finished:$POMO_FINISHED
+    # echo $(( ( $(date -d "18:30" +%s ) - $(date +%s) ) /60 )) | awk '{print strftime("%M:%S",$1)}'
+}
+
+pop_message(){
+  if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ];then \
+    cmd.exe /c "echo Pomodoro Finished!! > %TEMP%\PomodoroFinished.txt && notepad.exe %TEMP%\PomodoroFinished.txt"
+  fi
+
 }
 
 main() {
