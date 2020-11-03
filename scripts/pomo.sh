@@ -78,7 +78,7 @@ get_finished_text(){
 
 pop_message(){
   if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ];then \
-    cmd.exe /c "echo Pomodoro Finished!! > %TEMP%\PomodoroFinished.txt && notepad.exe %TEMP%\PomodoroFinished.txt"
+    /mnt/c/Windows/System32/cmd.exe /c "echo Pomodoro Finished!! > %TEMP%\PomodoroFinished.txt && notepad.exe %TEMP%\PomodoroFinished.txt"
   fi
 
 }
