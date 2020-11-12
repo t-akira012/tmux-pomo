@@ -16,7 +16,6 @@ session_finish() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
-  pop_message
 }
 session_stop() {
   tmux display-message "POMODORO stopped."
@@ -25,7 +24,6 @@ session_stop() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
-  pop_message
 }
 
 session_status() {
@@ -79,8 +77,7 @@ get_finished_text(){
 pop_message(){
   if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ];then \
     /mnt/c/Windows/System32/cmd.exe /c "echo Pomodoro Finished!! > %TEMP%\PomodoroFinished.txt && notepad.exe %TEMP%\PomodoroFinished.txt"
-  fi
-
+  fi 
 }
 
 main() {
