@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
 SESSION_NAME=$*
-if [ -n "$SESSION_NAME" ];then
-  echo $SESSION_NAME > $HOME/.tmux-pomo
-fi
+echo $SESSION_NAME > $HOME/.tmux-pomo
 CURRENT_TIME=$(date +%s)
 SESSION_TIME=$(( 15 * 60 ))
 END_TIME=$(( $SESSION_TIME + $CURRENT_TIME ))

@@ -16,7 +16,6 @@ session_finish() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
-  # pop_message
 }
 session_stop() {
   tmux display-message "POMODORO stopped."
@@ -25,7 +24,6 @@ session_stop() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
-  # pop_message
 }
 
 session_status() {
