@@ -4,6 +4,8 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CURRENT_TIME=$(date +%s)
 CURRENT_TIME_STRING=$(date +%H:%M)
 TODAY=$(date +"%Y/%m/%d (%a)")
+SESSION_NAME=$(tmux display-message -p '#S')
+SESSION_TITLE=$(cat $HOME/.tmux-pomo/$SESSION_NAME)
 
 session_start() {
   tmux command-prompt -p "POMO:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
@@ -20,7 +22,7 @@ session_finish() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
-  echo [$TODAY $CURRENT_TIME_STRING] $(cat $HOME/.tmux-pomo) FINISHED >>$HOME/.tmux-pomo-log
+  echo [$TODAY $CURRENT_TIME_STRING] $SESSION_TITLE FINISHED >>$HOME/.tmux-pomo-log
 }
 
 session_stop() {
@@ -30,7 +32,7 @@ session_stop() {
   tmux set-environment -g POMO_SESSION 0
   tmux set -g status-interval 15
   tmux refresh-client -S
-  echo [$TODAY $CURRENT_TIME_STRING] $(cat $HOME/.tmux-pomo) STOPPED >>$HOME/.tmux-pomo-log
+  echo [$TODAY $CURRENT_TIME_STRING] $SESSION_TITLE STOPPED >>$HOME/.tmux-pomo-log
 }
 
 session_status() {
@@ -46,7 +48,7 @@ session_status() {
 
 get_session_name() {
   # session start で指定したセッション名を返す
-  cat $HOME/.tmux-pomo/$(tmux display-message -p '#S')
+  echo $SESSION_TITLE
 }
 
 get_color() {
