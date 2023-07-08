@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# TODO: gawkを使わない <- そもそもbashをやめる
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CURRENT_TIME=$(date +%s)
@@ -69,8 +70,7 @@ get_pomodoro_time() {
   if [ $DIFFRENT -lt 0 ]; then
     session_finish
   else
-    local T=$(echo $DIFFRENT | awk '{print strftime("%M:%S",$1)}')
-    echo "$T"
+    echo $DIFFRENT | gawk '{print strftime("%M:%S",$1)}'
   fi
 }
 
@@ -79,7 +79,7 @@ get_finished_text() {
   local FINISHED=$(tmux show-environment -g POMO_FINISHED | sed 's/POMO_FINISHED=//g')
   local FINISHED_TIME=$(date -d "$FINISHED" +%s)
   local DIFFRENT=$(echo $(($CURRENT_TIME - $FINISHED_TIME)))
-  local DIFF_STRING=$(echo $DIFFRENT | awk '{print strftime("%M:%S",$1)}')
+  local DIFF_STRING=$(echo $DIFFRENT | gawk '{print strftime("%M:%S",$1)}')
   echo "$DIFF_STRING"
   # 終了時間を HH:MM 形式で表示
   # echo "*$POMO_FINISHED"
