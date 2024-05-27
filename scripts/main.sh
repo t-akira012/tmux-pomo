@@ -8,22 +8,28 @@ init_db(){
         "
 }
 
-bluk_change_current_flag(){
-    sqlite3 $HOME/.tmux-pomo.db "
-        UPDATE session_log SET current_flag = 0 WHERE current_flag = 1;
-        "
-}
-
 insert_end_time(){
     local CURRENT_UNIXTIME=$(date +%s)
     sqlite3 $HOME/.tmux-pomo.db "
         UPDATE session_log SET end_time = $CURRENT_UNIXTIME WHERE current_flag = 1;
         "
-    bluk_change_current_flag
+    # カレントフラグを全て落とす
+    sqlite3 $HOME/.tmux-pomo.db "UPDATE session_log SET current_flag = 0 WHERE current_flag = 1;"
 }
 
 get_all_session_log(){
     sqlite3 $HOME/.tmux-pomo.db "SELECT * FROM session_log;"
+}
+
+get_time(){
+    local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
+    if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=1" ]; then
+        # セッション中は時間差分を取得
+        get_current_session_time_diff
+    else
+        # セッション終了後
+        echo "finished"
+    fi
 }
 
 get_current_session_time_diff(){
@@ -60,6 +66,12 @@ end_session(){
 }
 
 stop_session(){
+    local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
+    if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=0" ]; then
+        # セッション中なら警告して終了
+        tmux display-message "Session has not started."
+        exit 0
+    fi
     tmux display-message "POMODORO stoped!!!"
     insert_end_time
 
@@ -71,17 +83,15 @@ stop_session(){
 }
 
 start_session(){
-    bluk_change_current_flag
-    # TMUX run-shellの引数でセッション名を指定
-    tmux command-prompt -p "POMO:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
-    tmux display-message "POMODORO started!!"
+    local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
+    if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=1" ]; then
+        # セッション中なら警告して終了
+        tmux display-message "Session has already started."
+        exit 0
+    fi
 
-    # ステータスバーの更新間隔を1秒
-    tmux set -g status-interval 1
-    # TMUX変数でセッションフラグを立てる
-    tmux set-environment -g POMODORO_SESSION_FLAG 1
-    # TMUXを更新
-    tmux refresh-client -S
+    # TMUX run-shellの引数でセッション名を指定
+    tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
 }
 
 get_color() {
@@ -103,12 +113,12 @@ main(){
     elif [ "$COMMAND" == "stop" ]; then
         stop_session
     elif [ "$COMMAND" == "time" ]; then
-        get_current_session_time_diff
+        get_time
     elif [ "$COMMAND" == "all" ]; then
         get_all_session_log
     elif [ "$COMMAND" == "color" ]; then
         get_color
-    else
+    elif [ "$COMMAND" == "name" ];then
         get_current_session_title
     fi
 }

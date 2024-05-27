@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-
-SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source $CURRENT_DIR/scripts/helpers.sh
+CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. $CURRENT_DIR/scripts/helpers.sh
 
 tmux bind-key p run-shell "$CURRENT_DIR/scripts/main.sh start"
 tmux bind-key P run-shell "$CURRENT_DIR/scripts/main.sh stop"
