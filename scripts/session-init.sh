@@ -27,10 +27,13 @@ sqlite3 $HOME/.tmux-pomo.db "
     "
 
 tmux display-message "POMODORO started!!"
-
 # ステータスバーの更新間隔を1秒
 tmux set -g status-interval 1
 # TMUX変数でセッションフラグを立てる
 tmux set-environment -g POMODORO_SESSION_FLAG 1
+# TMUX変数でセッションタイトルを保存
+tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
+# TMUX変数でセッション終了予定時刻を保存
+tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
 # TMUXを更新
 tmux refresh-client -S

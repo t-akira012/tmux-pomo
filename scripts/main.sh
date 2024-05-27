@@ -33,7 +33,7 @@ get_time(){
 }
 
 get_current_session_time_diff(){
-    local DEADLINE_UNIXTIME=$(sqlite3 $HOME/.tmux-pomo.db "SELECT deadline_time FROM session_log WHERE current_flag = 1;")
+    local DEADLINE_UNIXTIME=$(tmux show-environment -g POMODORO_DEADLINE_UNIXTIME | sed 's/POMODOR_DEADLINE_UNIXTIME=//')
     local CURRENT_UNIXTIME=$(date +%s)
 
     local DIFF=$(( $DEADLINE_UNIXTIME - $CURRENT_UNIXTIME ))
@@ -48,7 +48,7 @@ get_current_session_time_diff(){
 }
 
 get_current_session_title(){
-    local TITLE=$(sqlite3 $HOME/.tmux-pomo.db "SELECT TITLE FROM session_log WHERE current_flag = 1;")
+    local TITLE=$(tmux show-environment -g POMODORO_SESSION_TITLE | sed 's/POMODORO_SESSION_TITLE=//')
     echo $TITLE
 }
 
@@ -59,7 +59,7 @@ end_session(){
 
     # ステータスバーの更新間隔を15秒
     tmux set -g status-interval 15
-    # TMUX変数でセッションフラグを落とす
+    # TMUX変数からセッションフラグを落とす
     tmux set-environment -g POMODORO_SESSION_FLAG 0
     # TMUXを更新
     tmux refresh-client -S
