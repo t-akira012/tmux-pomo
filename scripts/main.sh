@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMAND=$1
-
-if [[ $# -gt 1 ]];then
-    shift 1
-    TITLE="$*"
-fi
 
 init_db(){
     sqlite3 $HOME/.tmux-pomo.db "
@@ -25,17 +20,6 @@ insert_end_time(){
         UPDATE session_log SET end_time = $CURRENT_UNIXTIME WHERE current_flag = 1;
         "
     bluk_change_current_flag
-}
-
-insert_start_time(){
-    bluk_change_current_flag
-    local TODAY=$(date +"%Y%m%d")
-    local CURRENT_UNIXTIME=$(date +%s)
-    local SESSION_DURATION_TIME=$(( 15 * 60 ))
-    local DEADLINE_UNIXTIME=$(( $CURRENT_UNIXTIME + $SESSION_DURATION_TIME ))
-    sqlite3 $HOME/.tmux-pomo.db "
-        INSERT INTO session_log values($TODAY, $CURRENT_UNIXTIME, $DEADLINE_UNIXTIME, NULL ,'$TITLE', 1);
-        "
 }
 
 get_all_session_log(){
@@ -87,8 +71,10 @@ stop_session(){
 }
 
 start_session(){
+    bluk_change_current_flag
+    # TMUX run-shellの引数でセッション名を指定
+    tmux command-prompt -p "POMO:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
     tmux display-message "POMODORO started!!"
-    insert_start_time
 
     # ステータスバーの更新間隔を1秒
     tmux set -g status-interval 1
