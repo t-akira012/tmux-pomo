@@ -5,13 +5,28 @@ COMMAND=$1
 source $CURRENT_DIR/env
 
 insert_end_time(){
-    curl -X GET ${ENDPOINT_URL}/api/stop
+    curl -s ${ENDPOINT_URL}/api/stop
     # TMUX変数にセッション終了時刻を保存
     tmux set-environment -g POMODORO_FINISHED_TIME $(date +%H:%M)
 }
 
-get_all_session_log(){
-    curl -X GET ${ENDPOINT_URL}/api/today
+sync(){
+    local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/current)
+
+    if [ "$CURRENT_SESSION" == "" ];then
+        exit 0
+    else
+        # ステータスバーの更新間隔を1秒
+        # tmux set -g status-interval 1
+        # TMUX変数でセッションフラグを立てる
+        tmux set-environment -g POMODORO_SESSION_FLAG 1
+        local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
+        # TMUX変数でセッションタイトルを保存
+        tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
+        local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadline_time')
+        # TMUX変数でセッション終了予定時刻を保存
+        tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
+    fi
 }
 
 get_time(){
@@ -28,7 +43,6 @@ get_time(){
 
 get_current_session_time_diff(){
     local DEADLINE_UNIXTIME=$(tmux show-environment -g POMODORO_DEADLINE_UNIXTIME | sed 's/POMODORO_DEADLINE_UNIXTIME=//')
-    local CURRENT_UNIXTIME=$(date +%s)
 
     local DIFF=$(( $DEADLINE_UNIXTIME - $CURRENT_UNIXTIME ))
 
@@ -46,17 +60,19 @@ get_current_session_title(){
     echo $TITLE
 }
 
+post_stop(){
+    # ステータスバーの更新間隔を伸ばす
+    # tmux set -g status-interval 15
+    # TMUX変数でセッションフラグを落とす
+    tmux set-environment -g POMODORO_SESSION_FLAG 0
+    tmux refresh-client -S
+}
+
 end_session(){
     tmux display-message "POMODORO finished!!!"
     tmux clock
     insert_end_time
-
-    # ステータスバーの更新間隔を15秒
-    tmux set -g status-interval 15
-    # TMUX変数からセッションフラグを落とす
-    tmux set-environment -g POMODORO_SESSION_FLAG 0
-    # TMUXを更新
-    tmux refresh-client -S
+    post_stop
 }
 
 stop_session(){
@@ -68,12 +84,7 @@ stop_session(){
     fi
     tmux display-message "POMODORO stoped!!!"
     insert_end_time
-
-    # ステータスバーの更新間隔を15秒
-    tmux set -g status-interval 15
-    # TMUX変数でセッションフラグを落とす
-    tmux set-environment -g POMODORO_SESSION_FLAG 0
-    tmux refresh-client -S
+    post_stop
 }
 
 start_session(){
@@ -100,11 +111,15 @@ get_color() {
 }
 
 main(){
+    # グローバル変数
+    CURRENT_UNIXTIME=$(date +%s)
 
     if [ "$COMMAND" = "start" ]; then
         start_session
     elif [ "$COMMAND" == "stop" ]; then
         stop_session
+    elif [ "$COMMAND" == "sync" ]; then
+        sync
     elif [ "$COMMAND" == "time" ]; then
         get_time
     elif [ "$COMMAND" == "all" ]; then
@@ -114,6 +129,12 @@ main(){
     elif [ "$COMMAND" == "name" ];then
         get_current_session_title
     fi
+
+    # 30秒毎にDB同期
+    if [ $(( $CURRENT_UNIXTIME % 30 )) -eq 0 ];then
+        sync
+    fi
+
 }
 
 main
