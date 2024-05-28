@@ -15,6 +15,9 @@ insert_end_time(){
         "
     # カレントフラグを全て落とす
     sqlite3 $HOME/.tmux-pomo.db "UPDATE session_log SET current_flag = 0 WHERE current_flag = 1;"
+
+    # TMUX変数にセッション終了時刻を保存
+    tmux set-environment -g POMODORO_FINISHED_TIME $(date +%H:%M)
 }
 
 get_all_session_log(){
@@ -28,12 +31,13 @@ get_time(){
         get_current_session_time_diff
     else
         # セッション終了後
-        echo "finished"
+        local FINISHED_TIME=$(tmux show-environment -g POMODORO_FINISHED_TIME| sed 's/POMODORO_FINISHED_TIME=//')
+        echo $FINISHED_TIME
     fi
 }
 
 get_current_session_time_diff(){
-    local DEADLINE_UNIXTIME=$(tmux show-environment -g POMODORO_DEADLINE_UNIXTIME | sed 's/POMODOR_DEADLINE_UNIXTIME=//')
+    local DEADLINE_UNIXTIME=$(tmux show-environment -g POMODORO_DEADLINE_UNIXTIME | sed 's/POMODORO_DEADLINE_UNIXTIME=//')
     local CURRENT_UNIXTIME=$(date +%s)
 
     local DIFF=$(( $DEADLINE_UNIXTIME - $CURRENT_UNIXTIME ))
