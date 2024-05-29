@@ -2,6 +2,7 @@
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . $CURRENT_DIR/scripts/helpers.sh
 
+tmux bind-key o run-shell "$CURRENT_DIR/scripts/cloud.sh sync"
 tmux bind-key p run-shell "$CURRENT_DIR/scripts/cloud.sh start"
 tmux bind-key P run-shell "$CURRENT_DIR/scripts/cloud.sh stop"
 
