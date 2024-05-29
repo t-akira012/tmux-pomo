@@ -96,7 +96,7 @@ start_session(){
     fi
 
     # TMUX run-shellの引数でセッション名を指定
-    tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/cloud-session-init.sh %%'"
+    tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-init.sh \"%%\"'"
 }
 
 get_color() {

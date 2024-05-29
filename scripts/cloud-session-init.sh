@@ -21,7 +21,7 @@ SESSION_DURATION_TIME=$(( 15 * 60 ))
 # セッション終了予定時刻
 DEADLINE_UNIXTIME=$(( $CURRENT_UNIXTIME + $SESSION_DURATION_TIME ))
 # SQLiteにセッションログ追加
-curl -s ${ENDPOINT_URL}/api/new?t=${SESSION_TITLE}
+curl -s "${ENDPOINT_URL}/api/new?t=${SESSION_TITLE}"
 
 
 tmux display-message "POMODORO started!!"
