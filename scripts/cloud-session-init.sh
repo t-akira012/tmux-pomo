@@ -2,9 +2,9 @@
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # セッションタイトルが引数に呼ばれていないなら終了
-if [ $# -eq 0 ];then
-    tmux display-message "POMODORO: require session title."
-    exit 0
+if [ $# -eq 0 ]; then
+	tmux display-message "POMODORO: require session title."
+	exit 0
 fi
 
 # ENDPOINT_URL
@@ -17,12 +17,11 @@ TODAY=$(date +"%Y%m%d")
 # 現在時刻
 CURRENT_UNIXTIME=$(date +%s)
 # セッション継続時間 秒
-SESSION_DURATION_TIME=$(( 25 * 60 ))
+SESSION_DURATION_TIME=$((25 * 60))
 # セッション終了予定時刻
-DEADLINE_UNIXTIME=$(( $CURRENT_UNIXTIME + $SESSION_DURATION_TIME ))
+DEADLINE_UNIXTIME=$(($CURRENT_UNIXTIME + $SESSION_DURATION_TIME))
 # SQLiteにセッションログ追加
-curl -s "${ENDPOINT_URL}/api/new?t=${SESSION_TITLE}"
-
+curl -s "${ENDPOINT_URL}/api/pomo/new?t=${SESSION_TITLE}"
 
 tmux display-message "POMODORO started!!"
 # ステータスバーの更新間隔を1秒
