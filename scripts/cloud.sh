@@ -16,10 +16,19 @@ sync() {
 	if [ "$CURRENT_SESSION" == "" ]; then
 		exit 0
 	else
-		# ステータスバーの更新間隔を1秒
-		# tmux set -g status-interval 1
-		# TMUX変数でセッションフラグを立てる
-		tmux set-environment -g POMODORO_SESSION_FLAG 1
+		local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
+		if [ $DIFF -lt 0 ]; then
+			# TMUX変数でセッションフラグを伸ばす
+			tmux set -g status-interval 15
+			# TMUX変数でセッションフラグを落とす
+			tmux set-environment -g POMODORO_SESSION_FLAG 0
+		else
+			# ステータスバーの更新間隔を短縮
+			tmux set -g status-interval 1
+			# TMUX変数でセッションフラグを立てる
+			tmux set-environment -g POMODORO_SESSION_FLAG 1
+		fi
+
 		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
 		# TMUX変数でセッションタイトルを保存
 		tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
@@ -62,7 +71,7 @@ get_current_session_title() {
 
 post_stop() {
 	# ステータスバーの更新間隔を伸ばす
-	# tmux set -g status-interval 15
+	tmux set -g status-interval 15
 	# TMUX変数でセッションフラグを落とす
 	tmux set-environment -g POMODORO_SESSION_FLAG 0
 	tmux refresh-client -S
