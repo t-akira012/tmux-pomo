@@ -11,7 +11,7 @@ insert_end_time() {
 }
 
 sync() {
-	local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/current)
+	local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/pomo/current)
 
 	if [ "$CURRENT_SESSION" == "" ]; then
 		exit 0
@@ -23,7 +23,7 @@ sync() {
 		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
 		# TMUX変数でセッションタイトルを保存
 		tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
-		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadline_time')
+		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadlineUnixtime')
 		# TMUX変数でセッション終了予定時刻を保存
 		tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
 	fi
