@@ -16,6 +16,14 @@ sync() {
 	if [ "$CURRENT_SESSION" == "" ]; then
 		exit 0
 	else
+		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
+		# TMUX変数でセッションタイトルを保存
+		tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
+		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadlineUnixtime')
+		# TMUX変数でセッション終了予定時刻を保存
+		tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
+
+		# 実行中をチェック
 		local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
 		if [ $DIFF -lt 0 ]; then
 			# TMUX変数でセッションフラグを伸ばす
@@ -28,13 +36,6 @@ sync() {
 			# TMUX変数でセッションフラグを立てる
 			tmux set-environment -g POMODORO_SESSION_FLAG 1
 		fi
-
-		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
-		# TMUX変数でセッションタイトルを保存
-		tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
-		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadlineUnixtime')
-		# TMUX変数でセッション終了予定時刻を保存
-		tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
 	fi
 }
 
