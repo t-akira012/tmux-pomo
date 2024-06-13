@@ -29,7 +29,7 @@ sync() {
 	else
 		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
 		# TMUX変数でセッションタイトルを保存
-		tmux set-environment -g POMODORO_SESSION_TITLE $SESSION_TITLE
+		tmux set-environment -g POMODORO_SESSION_TITLE "$SESSION_TITLE"
 		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadlineUnixtime')
 		# TMUX変数でセッション終了予定時刻を保存
 		tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
@@ -45,6 +45,19 @@ sync() {
 			tmux set-environment -g POMODORO_SESSION_FLAG 1
 		fi
 	fi
+	tmux refresh-client -S
+}
+
+overwrite() {
+	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
+	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=0" ]; then
+		# セッション中でないなら警告して終了
+		tmux display-message "Session has not started."
+		exit 0
+	fi
+
+	# TMUX run-shellの引数でセッション名を指定
+	tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
 }
 
 get_time() {
@@ -95,7 +108,7 @@ end_session() {
 stop_session() {
 	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
 	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=0" ]; then
-		# セッション中なら警告して終了
+		# セッション中でないなら警告して終了
 		tmux display-message "Session has not started."
 		exit 0
 	fi
@@ -137,6 +150,8 @@ main() {
 		stop_session
 	elif [ "$COMMAND" == "sync" ]; then
 		sync
+	elif [ "$COMMAND" == "overwrite" ]; then
+		overwrite
 	elif [ "$COMMAND" == "time" ]; then
 		get_time
 	elif [ "$COMMAND" == "all" ]; then
