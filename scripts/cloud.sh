@@ -10,6 +10,17 @@ insert_end_time() {
 	tmux set-environment -g POMODORO_FINISHED_TIME $(date +%H:%M)
 }
 
+update_interval_by_stop() {
+	# 変更しない
+	# tmux set -g status-interval 1
+	:
+}
+
+update_interval_by_start() {
+	TMUX変数でセッションフラグを伸ばす
+	tmux set -g status-interval 1
+}
+
 sync() {
 	local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/pomo/current)
 
@@ -26,13 +37,10 @@ sync() {
 		# 実行中をチェック
 		local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
 		if [ $DIFF -lt 0 ]; then
-			# TMUX変数でセッションフラグを伸ばす
-			tmux set -g status-interval 15
-			# TMUX変数でセッションフラグを落とす
+			update_interval_by_stop
 			tmux set-environment -g POMODORO_SESSION_FLAG 0
 		else
-			# ステータスバーの更新間隔を短縮
-			tmux set -g status-interval 1
+			update_interval_by_start
 			# TMUX変数でセッションフラグを立てる
 			tmux set-environment -g POMODORO_SESSION_FLAG 1
 		fi
@@ -71,8 +79,7 @@ get_current_session_title() {
 }
 
 post_stop() {
-	# ステータスバーの更新間隔を伸ばす
-	tmux set -g status-interval 15
+	update_interval_by_stop
 	# TMUX変数でセッションフラグを落とす
 	tmux set-environment -g POMODORO_SESSION_FLAG 0
 	tmux refresh-client -S
@@ -106,7 +113,7 @@ start_session() {
 	fi
 
 	# TMUX run-shellの引数でセッション名を指定
-	tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/cloud-session-init.sh \"%%\"'"
+	tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-init.sh \"%%\"'"
 }
 
 get_color() {
@@ -140,8 +147,8 @@ main() {
 		get_current_session_title
 	fi
 
-	# 30秒毎にDB同期
-	if [ $(($CURRENT_UNIXTIME % 30)) -eq 0 ]; then
+	# 10秒毎にDB同期
+	if [ $(($CURRENT_UNIXTIME % 10)) -eq 0 ]; then
 		sync
 	fi
 
