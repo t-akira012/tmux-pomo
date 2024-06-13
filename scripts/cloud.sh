@@ -33,17 +33,28 @@ sync() {
 		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadlineUnixtime')
 		# TMUX変数でセッション終了予定時刻を保存
 		tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
+		# TMUX変数でセッション終了時刻を保存
+		local FINISHED_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.endUnixtime')
+		tmux set-environment -g POMODORO_FINISHED_TIME $(
+			date -r $FINISHED_UNIXTIME +"%H:%M"
+		)
 
-		# 実行中をチェック
-		local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
-		if [ $DIFF -lt 0 ]; then
-			update_interval_by_stop
-			tmux set-environment -g POMODORO_SESSION_FLAG 0
-		else
-			update_interval_by_start
-			# TMUX変数でセッションフラグを立てる
-			tmux set-environment -g POMODORO_SESSION_FLAG 1
+		# 実行中フラグ
+		local CURRENT_FLAG=$(echo $CURRENT_SESSION | jq -r '.currentFlag')
+		if [ $CURRENT_FLAG -eq 1 ]; then
+			# 実行中をチェック
+			local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
+			if [ $DIFF -lt 0 ]; then
+				update_interval_by_stop
+				tmux set-environment -g POMODORO_SESSION_FLAG 0
+			else
+				update_interval_by_start
+				# TMUX変数でセッションフラグを立てる
+				tmux set-environment -g POMODORO_SESSION_FLAG 1
+			fi
 		fi
+
+		tmux set-environment -g POMODORO_SESSION_FLAG $CURRENT_FLAG
 	fi
 	tmux refresh-client -S
 }
