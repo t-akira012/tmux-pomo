@@ -116,6 +116,10 @@ end_session() {
 	post_stop
 }
 
+stop_session_confirm() {
+	tmux command-prompt -p "Do you want stop a Pomodoro Session?(press ok):" "run-shell '$CURRENT_DIR/cloud.sh stop_\"%%\"'"
+}
+
 stop_session() {
 	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
 	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=0" ]; then
@@ -158,6 +162,8 @@ main() {
 	if [ "$COMMAND" = "start" ]; then
 		start_session
 	elif [ "$COMMAND" == "stop" ]; then
+		stop_session_confirm
+	elif [ "$COMMAND" == "stop_ok" ]; then
 		stop_session
 	elif [ "$COMMAND" == "sync" ]; then
 		sync
