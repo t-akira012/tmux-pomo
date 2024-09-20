@@ -179,8 +179,8 @@ main() {
 		get_current_session_title
 	fi
 
-	# 10秒毎にDB同期
-	if [ $(($CURRENT_UNIXTIME % 10)) -eq 0 ]; then
+	# 60秒毎にDB同期
+	if [ $(($CURRENT_UNIXTIME % 60)) -eq 0 ]; then
 		sync
 	fi
 
