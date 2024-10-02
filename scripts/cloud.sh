@@ -117,7 +117,7 @@ end_session() {
 }
 
 stop_session_confirm() {
-	tmux command-prompt -p "Do you want stop a Pomodoro Session?(press ok):" "run-shell '$CURRENT_DIR/cloud.sh stop_\"%%\"'"
+	tmux command-prompt -p "Do you want stop a Pomodoro Session?(press Enter or CTRL-C):" "run-shell '$CURRENT_DIR/cloud.sh stop_ok'"
 }
 
 stop_session() {
