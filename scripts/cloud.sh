@@ -5,7 +5,7 @@ COMMAND=$1
 source $CURRENT_DIR/env
 
 insert_end_time() {
-	curl -s ${ENDPOINT_URL}/api/pomo/allstop 2&>1 /dev/null
+	curl -s ${ENDPOINT_URL}/api/pomo/allstop 2&>1 /dev/null &
 	# TMUX変数にセッション終了時刻を保存
 	tmux set-environment -g POMODORO_FINISHED_TIME $(date +%H:%M)
 }
