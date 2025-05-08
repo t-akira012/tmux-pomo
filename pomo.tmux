@@ -2,10 +2,13 @@
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . $CURRENT_DIR/scripts/helpers.sh
 
-tmux bind-key O run-shell "$CURRENT_DIR/scripts/cloud.sh overwrite"
-tmux bind-key o run-shell "$CURRENT_DIR/scripts/cloud.sh sync"
-tmux bind-key p run-shell "$CURRENT_DIR/scripts/cloud.sh start"
-tmux bind-key P run-shell "$CURRENT_DIR/scripts/cloud.sh stop"
+# cloud or local
+use="cloud"
+
+tmux bind-key O run-shell "$CURRENT_DIR/scripts/${use}/main.sh overwrite"
+tmux bind-key o run-shell "$CURRENT_DIR/scripts/${use}/main.sh sync"
+tmux bind-key p run-shell "$CURRENT_DIR/scripts/${use}/main.sh start"
+tmux bind-key P run-shell "$CURRENT_DIR/scripts/${use}/main.sh stop"
 
 pomo_interpolation=(
 	"\#{pomo_status}"
@@ -13,9 +16,9 @@ pomo_interpolation=(
 	"\#{pomo_color}"
 )
 pomo_commands=(
-	"#($CURRENT_DIR/scripts/cloud.sh time)"
-	"#($CURRENT_DIR/scripts/cloud.sh name)"
-	"#($CURRENT_DIR/scripts/cloud.sh color)"
+	"#($CURRENT_DIR/scripts/${use}/main.sh time)"
+	"#($CURRENT_DIR/scripts/${use}/main.sh name)"
+	"#($CURRENT_DIR/scripts/${use}/main.sh color)"
 )
 
 do_interpolation() {
