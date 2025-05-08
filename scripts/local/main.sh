@@ -34,7 +34,7 @@ overwrite() {
 	fi
 
 	# TMUX run-shellの引数でセッション名を指定
-	tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
+	tmux command-prompt -p "POMODORO ovewrite:" "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
 }
 
 get_time(){
@@ -112,7 +112,7 @@ start_session(){
     fi
 
     # TMUX run-shellの引数でセッション名を指定
-    tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
+    tmux command-prompt -p "POMODORO start:" "run-shell '$CURRENT_DIR/session-init.sh %%'"
 }
 
 get_color() {
@@ -152,20 +152,6 @@ main(){
   	elif [ "$COMMAND" == "name" ]; then
   		get_current_session_title
   	fi
-
-    if [ "$COMMAND" = "start" ]; then
-        start_session
-    elif [ "$COMMAND" == "stop" ]; then
-        stop_session
-    elif [ "$COMMAND" == "time" ]; then
-        get_time
-    elif [ "$COMMAND" == "all" ]; then
-        get_all_session_log
-    elif [ "$COMMAND" == "color" ]; then
-        get_color
-    elif [ "$COMMAND" == "name" ];then
-        get_current_session_title
-    fi
 }
 
 main

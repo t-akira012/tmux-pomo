@@ -18,7 +18,7 @@ TODAY=$(date +"%Y%m%d")
 # 現在時刻
 CURRENT_UNIXTIME=$(date +%s)
 # セッション継続時間 秒
-SESSION_DURATION_TIME=$(( 15 * 60 ))
+SESSION_DURATION_TIME=$(( 25 * 60 ))
 # セッション終了予定時刻
 DEADLINE_UNIXTIME=$(( $CURRENT_UNIXTIME + $SESSION_DURATION_TIME ))
 # SQLiteにセッションログ追加

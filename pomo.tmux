@@ -3,7 +3,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . $CURRENT_DIR/scripts/helpers.sh
 
 # cloud or local
-use="cloud"
+use="local"
 
 tmux bind-key O run-shell "$CURRENT_DIR/scripts/${use}/main.sh overwrite"
 tmux bind-key o run-shell "$CURRENT_DIR/scripts/${use}/main.sh sync"
