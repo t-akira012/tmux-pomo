@@ -11,7 +11,7 @@ fi
 sqlite3 $HOME/.tmux-pomo.db "UPDATE session_log SET current_flag = 0 WHERE current_flag = 1;"
 
 # コマンド引数を全てセッションタイトルとして扱う
-SESSION_TITLE=$*
+SESSION_TITLE=$(echo "$*"|sed -e 's/^\s+//g' -e 's/^- \[ \] //')
 # 今日
 TODAY=$(date +"%Y%m%d")
 # 現在時刻
