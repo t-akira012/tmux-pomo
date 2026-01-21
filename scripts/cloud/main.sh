@@ -38,6 +38,9 @@ sync() {
 		tmux set-environment -g POMODORO_FINISHED_TIME $(
 			date -r $FINISHED_UNIXTIME +"%H:%M"
 		)
+		# TMUX変数でセッション開始時刻を保存
+		local START_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.startUnixtime')
+		tmux set-environment -g POMODORO_START_TIME $(date -r $START_UNIXTIME +"%H:%M")
 
 		# 実行中フラグ
 		local CURRENT_FLAG=$(echo $CURRENT_SESSION | jq -r '.currentFlag')
@@ -99,7 +102,8 @@ get_current_session_time_diff() {
 
 get_current_session_title() {
 	local TITLE=$(tmux show-environment -g POMODORO_SESSION_TITLE | sed 's/POMODORO_SESSION_TITLE=//')
-	echo $TITLE
+	local START_TIME=$(tmux show-environment -g POMODORO_START_TIME | sed 's/POMODORO_START_TIME=//')
+	echo "$TITLE($START_TIME)"
 }
 
 post_stop() {
