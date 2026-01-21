@@ -117,7 +117,7 @@ end_session() {
 }
 
 stop_session_confirm() {
-	tmux command-prompt -p "Do you want stop a Pomodoro Session?(press Enter or CTRL-C):" "run-shell '$CURRENT_DIR/cloud.sh stop_ok'"
+	tmux command-prompt -p "Do you want stop a Pomodoro Session?(press Enter or CTRL-C):" "run-shell '$CURRENT_DIR/main.sh stop_ok'"
 }
 
 stop_session() {
@@ -179,8 +179,8 @@ main() {
 		get_current_session_title
 	fi
 
-	# 60秒毎にDB同期
-	if [ $(($CURRENT_UNIXTIME % 60)) -eq 0 ]; then
+	# 10秒毎にDB同期
+	if [ $(($CURRENT_UNIXTIME % 10)) -eq 0 ]; then
 		sync
 	fi
 
