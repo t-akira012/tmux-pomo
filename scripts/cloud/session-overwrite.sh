@@ -7,21 +7,11 @@ if [ $# -eq 0 ]; then
 	exit 0
 fi
 
-# ENDPOINT_URL
-source $CURRENT_DIR/env
+ENDPOINT_URL=$(jq -r .endpoint "$HOME/.config/pomo")
 
 # コマンド引数を全てセッションタイトルとして扱う
 SESSION_TITLE=$*
 SESSION_TITLE_ENCODED=$(echo "$SESSION_TITLE" | jq -Rr @uri)
-# 今日
-TODAY=$(date +"%Y%m%d")
-# 現在時刻
-CURRENT_UNIXTIME=$(date +%s)
-# セッション継続時間 秒
-SESSION_DURATION_TIME=$((25 * 60))
-# セッション終了予定時刻
-DEADLINE_UNIXTIME=$(($CURRENT_UNIXTIME + $SESSION_DURATION_TIME))
-# SQLiteにセッションログ追加
 curl -s "${ENDPOINT_URL}/api/pomo/overwrite?t=${SESSION_TITLE_ENCODED}"
 
 tmux display-message "POMODORO started!!"

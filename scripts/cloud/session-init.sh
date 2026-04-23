@@ -7,25 +7,15 @@ if [ $# -eq 0 ]; then
 	exit 0
 fi
 
-# ENDPOINT_URL
-source $CURRENT_DIR/env
+ENDPOINT_URL=$(jq -r .endpoint "$HOME/.config/pomo")
 
 # コマンド引数を全てセッションタイトルとして扱う
 SESSION_TITLE=$*
 SESSION_TITLE_ENCODED=$(echo "$SESSION_TITLE" | jq -Rr @uri)
-# 今日
-TODAY=$(date +"%Y%m%d")
 # 現在時刻
 CURRENT_UNIXTIME=$(date +%s)
-# セッション継続時間 秒
-SESSION_DURATION_TIME=$((25 * 60))
-# セッション終了予定時刻
-DEADLINE_UNIXTIME=$(($CURRENT_UNIXTIME + $SESSION_DURATION_TIME))
-# SQLiteにセッションログ追加
 
 API_RESPONSE=$(curl -s "${ENDPOINT_URL}/api/pomo/new?t=${SESSION_TITLE_ENCODED}")
-# APIレスポンスからdeadlineUnixtimeとtitleを抽出
-RESPONSED_DEADLINE_UNIXTIME=$(echo $API_RESPONSE | jq -r .deadlineUnixtime)
 RESPONSED_TITLE=$(echo $API_RESPONSE | jq -r .title)
 
 tmux display-message "POMODORO started!!"
@@ -35,7 +25,7 @@ tmux set -g status-interval 1
 tmux set-environment -g POMODORO_SESSION_FLAG 1
 # TMUX変数でセッションタイトルを保存
 tmux set-environment -g POMODORO_SESSION_TITLE "$RESPONSED_TITLE"
-# TMUX変数でセッション終了予定時刻を保存
-tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $RESPONSED_DEADLINE_UNIXTIME
+# TMUX変数でセッション開始時刻を保存
+tmux set-environment -g POMODORO_START_UNIXTIME $CURRENT_UNIXTIME
 # TMUXを更新
 tmux refresh-client -S

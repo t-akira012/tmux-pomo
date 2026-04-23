@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMAND=$1
-# ENDPOINT_URL
-source $CURRENT_DIR/env
+CONFIG=$HOME/.config/pomo
+ENDPOINT_URL=$(jq -r .endpoint "$CONFIG")
+INTERVAL=$(jq -r .interval "$CONFIG")
 
 insert_end_time() {
-	curl -s ${ENDPOINT_URL}/api/pomo/allstop 2&>1 /dev/null &
+	curl -s ${ENDPOINT_URL}/api/pomo/stop 2&>1 /dev/null &
 	# TMUX変数にセッション終了時刻を保存
 	tmux set-environment -g POMODORO_FINISHED_TIME $(date +%H:%M)
 }
@@ -22,41 +23,21 @@ update_interval_by_start() {
 }
 
 sync() {
-	local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/pomo/current)
+	local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/pomo/now)
 
 	if [ "$CURRENT_SESSION" == "" ]; then
 		exit 0
 	else
-		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title')
+		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title // ""')
 		# TMUX変数でセッションタイトルを保存
 		tmux set-environment -g POMODORO_SESSION_TITLE "$SESSION_TITLE"
-		local DEADLINE_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.deadlineUnixtime')
-		# TMUX変数でセッション終了予定時刻を保存
-		tmux set-environment -g POMODORO_DEADLINE_UNIXTIME $DEADLINE_UNIXTIME
-		# TMUX変数でセッション終了時刻を保存
-		local FINISHED_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.endUnixtime')
-		tmux set-environment -g POMODORO_FINISHED_TIME $(
-			date -r $FINISHED_UNIXTIME +"%H:%M"
-		)
 		# TMUX変数でセッション開始時刻を保存
-		local START_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.startUnixtime')
-		tmux set-environment -g POMODORO_START_TIME $(date -r $START_UNIXTIME +"%H:%M")
+		local START_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.startUnixtime // 0')
+		tmux set-environment -g POMODORO_START_UNIXTIME $START_UNIXTIME
 
-		# 実行中フラグ
-		local CURRENT_FLAG=$(echo $CURRENT_SESSION | jq -r '.currentFlag')
-		if [ $CURRENT_FLAG -eq 1 ]; then
-			# 実行中をチェック
-			local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
-			if [ $DIFF -lt 0 ]; then
-				update_interval_by_stop
-				tmux set-environment -g POMODORO_SESSION_FLAG 0
-			else
-				update_interval_by_start
-				# TMUX変数でセッションフラグを立てる
-				tmux set-environment -g POMODORO_SESSION_FLAG 1
-			fi
-		fi
-
+		# 実行中フラグ - startUnixtime > 0 なら実行中
+		local CURRENT_FLAG=0
+		[ "$START_UNIXTIME" -gt 0 ] && CURRENT_FLAG=1
 		tmux set-environment -g POMODORO_SESSION_FLAG $CURRENT_FLAG
 	fi
 	tmux refresh-client -S
@@ -87,23 +68,17 @@ get_time() {
 }
 
 get_current_session_time_diff() {
-	local DEADLINE_UNIXTIME=$(tmux show-environment -g POMODORO_DEADLINE_UNIXTIME | sed 's/POMODORO_DEADLINE_UNIXTIME=//')
+	local START_UNIXTIME=$(tmux show-environment -g POMODORO_START_UNIXTIME | sed 's/POMODORO_START_UNIXTIME=//')
 
-	local DIFF=$(($DEADLINE_UNIXTIME - $CURRENT_UNIXTIME))
+	local ELAPSED=$(($CURRENT_UNIXTIME - $START_UNIXTIME))
 
-	if [ $DIFF -lt 0 ]; then
-		# 残り時間が0以下ならセッションを終了
-		end_session
-	else
-		# 残り時間が1以上なら残り秒数を表示
-		echo $DIFF | gawk '{print strftime("%M:%S",$1)}'
-	fi
+	# 経過時間を表示
+	echo $ELAPSED | gawk '{print strftime("%M:%S",$1)}'
 }
 
 get_current_session_title() {
 	local TITLE=$(tmux show-environment -g POMODORO_SESSION_TITLE | sed 's/POMODORO_SESSION_TITLE=//')
-	local START_TIME=$(tmux show-environment -g POMODORO_START_TIME | sed 's/POMODORO_START_TIME=//')
-	echo "$TITLE($START_TIME)"
+	echo "$TITLE"
 }
 
 post_stop() {
@@ -183,8 +158,8 @@ main() {
 		get_current_session_title
 	fi
 
-	# 30秒毎にDB同期
-	if [ $(($CURRENT_UNIXTIME % 30)) -eq 0 ]; then
+	# INTERVAL秒毎にDB同期
+	if [ $(($CURRENT_UNIXTIME % $INTERVAL)) -eq 0 ]; then
 		sync
 	fi
 
