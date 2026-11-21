@@ -19,7 +19,7 @@ chmod 600 .env
 
 | キー | 操作 |
 | --- | --- |
-| `prefix + p` | 開始 |
+| `prefix + p` | セッション名を入力して開始 |
 | `prefix + P` | 停止 |
 | `prefix + O` | セッション名の変更 |
 | `prefix + o` | サーバーから状態を同期（cloud 版のみ） |

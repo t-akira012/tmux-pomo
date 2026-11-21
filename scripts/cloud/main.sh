@@ -56,7 +56,15 @@ case "$COMMAND" in
         fi
         ;;
     sync) sync_state || tmux display-message 'Timer sync failed' ;;
-    start) "$CURRENT_DIR/session-init.sh" ;;
+    start)
+        if ! sync_state; then
+            tmux display-message 'Timer sync failed'
+        elif jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+            tmux display-message 'Session has already started.'
+        else
+            tmux command-prompt -p 'POMODORO start:' "run-shell '$CURRENT_DIR/session-init.sh \"%%\"'"
+        fi
+        ;;
     stop)
         local_response=$(pomo_request POST stop) && pomo_store_response "$local_response" || tmux display-message 'Timer stop failed'
         ;;
