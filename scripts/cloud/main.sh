@@ -3,11 +3,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$CURRENT_DIR/api.sh" || exit 1
 COMMAND=${1:-}
 
-sync_state() {
-    local response
-    pomo_record_sync_attempt || return 1
-    response=$(pomo_request GET timer) && pomo_store_response "$response"
-}
+sync_state() { pomo_sync_state; }
 
 maybe_sync() {
     local last=0 now interval=${SYNC_INTERVAL:-30}

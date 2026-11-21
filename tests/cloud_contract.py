@@ -138,6 +138,12 @@ else:raise SystemExit(2)
         self.assertIn('/scripts/cloud/main.sh time)',status)
         self.assertIn('#{@pomo_name}',status);self.assertIn('#{@pomo_color}',status)
 
+    def test_name_confirmation_resyncs_and_does_not_start_an_active_timer(self):
+        self.run_script('session-init.sh','名前',ok=False)
+        self.assertIn(['display-message','Session has already started.'],self.log())
+        self.assertEqual(len(self.log('api.log')),1)
+        self.assertTrue(self.log('api.log')[0][-1].endswith('/timer'))
+
     def test_local_mode_keeps_existing_bindings(self):
         p=self.root/'.env';p.write_text(p.read_text().replace('USE_LOCAL=false','USE_LOCAL=true'))
         result=subprocess.run(['bash',str(self.root/'pomo.tmux')],env=self.env,text=True,capture_output=True)

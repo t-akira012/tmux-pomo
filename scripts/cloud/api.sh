@@ -20,6 +20,14 @@ pomo_request() {
     fi
 }
 pomo_record_sync_attempt() { date +%s > "$POMO_ROOT/.pomo-last-attempt"; }
+pomo_sync_state() {
+    local response
+    pomo_record_sync_attempt || return 1
+    response=$(pomo_request GET timer) && pomo_store_response "$response"
+}
+pomo_format_time() {
+    date -r "$1" +%H:%M 2>/dev/null || date -d "@$1" +%H:%M
+}
 pomo_load_state() {
     [[ -f $POMO_STATE ]] || return 1
     read -r pomo_duration pomo_start pomo_completed pomo_server pomo_fetched < <(
@@ -40,7 +48,7 @@ pomo_render_time() {
         local seconds=$(( (pomo_end - pomo_now + 999) / 1000 ))
         printf '%02d:%02d\n' "$((seconds / 60))" "$((seconds % 60))"
     elif (( pomo_end >= 0 )); then
-        date -r "$((pomo_end / 1000))" +%H:%M
+        pomo_format_time "$((pomo_end / 1000))"
     else
         printf '%s\n' '--:--'
     fi
