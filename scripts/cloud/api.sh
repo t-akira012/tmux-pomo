@@ -27,8 +27,12 @@ pomo_request() {
     fi
 }
 
+pomo_record_sync_attempt() {
+    printf '%s\n' "$(date +%s)" > "$POMO_ROOT/.pomo-last-attempt"
+}
+
 pomo_store_response() {
-    local response=$1 temp title start flag
+    local response=$1 temp title start flag color
     umask 077
     temp=$(mktemp "$POMO_ROOT/.pomo-state.XXXXXX") || return 1
     if ! printf '%s' "$response" | jq -ec --argjson fetchedAt "$(date +%s)" \
@@ -44,5 +48,16 @@ pomo_store_response() {
     tmux set-environment -g POMODORO_SESSION_TITLE "$title" >/dev/null 2>&1 || true
     tmux set-environment -g POMODORO_START_UNIXTIME "$start" >/dev/null 2>&1 || true
     tmux set-environment -g POMODORO_SESSION_FLAG "$flag" >/dev/null 2>&1 || true
+    if [[ $(tmux show-option -gv @pomo_name 2>/dev/null) != "$title" ]]; then
+        tmux set-option -gq @pomo_name "$title" >/dev/null 2>&1 || true
+    fi
+    if (( flag )); then
+        color=brightred
+    else
+        color=green
+    fi
+    if [[ $(tmux show-option -gv @pomo_color 2>/dev/null) != "$color" ]]; then
+        tmux set-option -gq @pomo_color "$color" >/dev/null 2>&1 || true
+    fi
     tmux refresh-client -S >/dev/null 2>&1 || true
 }

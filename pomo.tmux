@@ -36,9 +36,19 @@ pomo_commands=(
 	"#($CURRENT_DIR/scripts/${use}/main.sh name)"
 	"#($CURRENT_DIR/scripts/${use}/main.sh color)"
 )
+if [ "$use" = cloud ]; then
+	pomo_commands[1]='#{@pomo_name}'
+	pomo_commands[2]='#{@pomo_color}'
+fi
 
 do_interpolation() {
 	local all_interpolated="$1"
+	all_interpolated=${all_interpolated//'#{@pomo_name}'/'#{pomo_name}'}
+	all_interpolated=${all_interpolated//'#{@pomo_color}'/'#{pomo_color}'}
+	all_interpolated=$(printf '%s' "$all_interpolated" | sed -E \
+		-e 's@#\([^)]*/scripts/(cloud|local)/main\.sh time\)@#{pomo_status}@g' \
+		-e 's@#\([^)]*/scripts/(cloud|local)/main\.sh name\)@#{pomo_name}@g' \
+		-e 's@#\([^)]*/scripts/(cloud|local)/main\.sh color\)@#{pomo_color}@g')
 	for ((i = 0; i < ${#pomo_commands[@]}; i++)); do
 		all_interpolated=${all_interpolated//${pomo_interpolation[$i]}/${pomo_commands[$i]}}
 	done
@@ -57,3 +67,6 @@ main() {
 	update_tmux_option "status-left"
 }
 main
+if [ "$use" = cloud ]; then
+	"$CURRENT_DIR/scripts/cloud/main.sh" sync >/dev/null 2>&1 || true
+fi

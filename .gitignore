@@ -2,3 +2,5 @@
 !.env.example
 .pomo-state.json
 .pomo-state.*
+.pomo-last-attempt
+.pomo-sync.lock

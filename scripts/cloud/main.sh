@@ -5,6 +5,7 @@ COMMAND=${1:-}
 
 sync_state() {
     local response
+    pomo_record_sync_attempt || return 1
     response=$(pomo_request GET timer) && pomo_store_response "$response"
 }
 
@@ -13,12 +14,13 @@ maybe_sync() {
     if [[ ! $interval =~ ^[1-9][0-9]*$ ]]; then
         return 1
     fi
-    if [[ -f $POMO_STATE ]]; then
-        last=$(jq -r '.fetchedAtSeconds // 0' "$POMO_STATE" 2>/dev/null) || last=0
+    if [[ -f $POMO_ROOT/.pomo-last-attempt ]]; then
+        read -r last < "$POMO_ROOT/.pomo-last-attempt" || last=0
     fi
+    [[ $last =~ ^[0-9]+$ ]] || last=0
     now=$(date +%s)
     if (( now - last >= interval )); then
-        sync_state >/dev/null 2>&1 || true
+        lockf -t 0 "$POMO_ROOT/.pomo-sync.lock" "$CURRENT_DIR/main.sh" sync_if_due >/dev/null 2>&1 || true
     fi
 }
 
@@ -50,6 +52,18 @@ show_time() {
 
 case "$COMMAND" in
     time) show_time ;;
+    sync_if_due)
+        interval=${SYNC_INTERVAL:-30}
+        [[ $interval =~ ^[1-9][0-9]*$ ]] || exit 1
+        last=0
+        if [[ -f $POMO_ROOT/.pomo-last-attempt ]]; then
+            read -r last < "$POMO_ROOT/.pomo-last-attempt" || last=0
+        fi
+        [[ $last =~ ^[0-9]+$ ]] || last=0
+        if (( $(date +%s) - last >= interval )); then
+            sync_state >/dev/null 2>&1
+        fi
+        ;;
     name) [[ -f $POMO_STATE ]] && jq -r '.sessionName // ""' "$POMO_STATE" ;;
     color)
         if [[ -f $POMO_STATE ]] && jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
