@@ -6,12 +6,7 @@ if [[ -z ${1:-} ]]; then
     exit 1
 fi
 body=$(jq -nc --arg name "$*" '{name: $name}')
-if ! response=$(pomo_request PUT session-name "$body"); then
-    tmux display-message 'Session name update failed'
-    exit 1
-fi
-pomo_store_response "$response" || exit 1
-if response=$(pomo_request POST start) && pomo_store_response "$response"; then
+if response=$(pomo_request POST start "$body") && pomo_store_response "$response"; then
     tmux set -g status-interval 1
     tmux display-message 'POMODORO started!!'
 else

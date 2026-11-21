@@ -26,29 +26,11 @@ maybe_sync() {
 
 show_time() {
     maybe_sync
-    if [[ ! -f $POMO_STATE ]]; then
-        printf '%s\n' '--:--'
-        return
-    fi
-    local duration start stopped server fetched elapsed remaining seconds prefix=''
-    read -r duration start stopped server fetched < <(
-        jq -r '[.durationSeconds, (.startedAtMillis // -1), (.stoppedElapsedMillis // 0), .serverNowMillis, .fetchedAtSeconds] | @tsv' "$POMO_STATE"
-    )
-    if (( start >= 0 )); then
-        elapsed=$(( (server - start) / 1000 + $(date +%s) - fetched ))
-    else
-        elapsed=$(( stopped / 1000 ))
-    fi
-    (( elapsed < 0 )) && elapsed=0
-    remaining=$(( duration - elapsed ))
-    if (( remaining < 0 )); then
-        prefix='+'
-        seconds=$(( -remaining ))
-    else
-        seconds=$remaining
-    fi
-    printf '%s%02d:%02d\n' "$prefix" "$((seconds / 60))" "$((seconds % 60))"
+    pomo_publish_state
+    pomo_render_time
 }
+
+is_running() { pomo_load_state && (( pomo_running )); }
 
 case "$COMMAND" in
     time) show_time ;;
@@ -66,17 +48,13 @@ case "$COMMAND" in
         ;;
     name) [[ -f $POMO_STATE ]] && jq -r '.sessionName // ""' "$POMO_STATE" ;;
     color)
-        if [[ -f $POMO_STATE ]] && jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
-            printf '%s\n' brightred
-        else
-            printf '%s\n' green
-        fi
+        if is_running; then printf '%s\n' brightred; else printf '%s\n' green; fi
         ;;
     sync) sync_state || tmux display-message 'Timer sync failed' ;;
     start)
         if ! sync_state; then
             tmux display-message 'Timer sync failed'
-        elif jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+        elif is_running; then
             tmux display-message 'Session has already started.'
         else
             tmux command-prompt -p 'POMODORO start:' "run-shell '$CURRENT_DIR/session-init.sh \"%%\"'"
@@ -89,11 +67,11 @@ case "$COMMAND" in
     stop_ok)
         if ! sync_state; then
             tmux display-message 'Timer sync failed'
-        elif ! jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+        elif ! is_running; then
             tmux display-message 'Session has not started.'
         else
             local_response=$(pomo_request POST stop) && pomo_store_response "$local_response" && {
-                tmux set-environment -g POMODORO_FINISHED_TIME "$(date +%H:%M)"
+                tmux set-environment -g POMODORO_FINISHED_TIME "$(pomo_render_time)"
                 tmux display-message 'POMODORO stopped!!!'
             } || tmux display-message 'Timer stop failed'
         fi
@@ -101,7 +79,7 @@ case "$COMMAND" in
     overwrite)
         if ! sync_state; then
             tmux display-message 'Timer sync failed'
-        elif ! jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+        elif ! is_running; then
             tmux display-message 'Session has not started.'
         else
             tmux command-prompt -p 'POMODORO:' "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
