@@ -9,12 +9,15 @@ sync_state() {
 }
 
 maybe_sync() {
-    local last=0 now
+    local last=0 now interval=${SYNC_INTERVAL:-30}
+    if [[ ! $interval =~ ^[1-9][0-9]*$ ]]; then
+        return 1
+    fi
     if [[ -f $POMO_STATE ]]; then
         last=$(jq -r '.fetchedAtSeconds // 0' "$POMO_STATE" 2>/dev/null) || last=0
     fi
     now=$(date +%s)
-    if (( now - last >= 15 )); then
+    if (( now - last >= interval )); then
         sync_state >/dev/null 2>&1 || true
     fi
 }
@@ -66,9 +69,28 @@ case "$COMMAND" in
         fi
         ;;
     stop)
-        local_response=$(pomo_request POST stop) && pomo_store_response "$local_response" || tmux display-message 'Timer stop failed'
+        tmux command-prompt -p 'Do you want stop a Pomodoro Session?(press Enter or CTRL-C):' \
+            "run-shell '$CURRENT_DIR/main.sh stop_ok'"
+        ;;
+    stop_ok)
+        if ! sync_state; then
+            tmux display-message 'Timer sync failed'
+        elif ! jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+            tmux display-message 'Session has not started.'
+        else
+            local_response=$(pomo_request POST stop) && pomo_store_response "$local_response" && {
+                tmux set-environment -g POMODORO_FINISHED_TIME "$(date +%H:%M)"
+                tmux display-message 'POMODORO stopped!!!'
+            } || tmux display-message 'Timer stop failed'
+        fi
         ;;
     overwrite)
-        tmux command-prompt -p 'Session name:' "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
+        if ! sync_state; then
+            tmux display-message 'Timer sync failed'
+        elif ! jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+            tmux display-message 'Session has not started.'
+        else
+            tmux command-prompt -p 'POMODORO:' "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
+        fi
         ;;
 esac

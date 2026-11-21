@@ -11,4 +11,9 @@ if ! response=$(pomo_request PUT session-name "$body"); then
     exit 1
 fi
 pomo_store_response "$response" || exit 1
-response=$(pomo_request POST start) && pomo_store_response "$response" || tmux display-message 'Timer start failed'
+if response=$(pomo_request POST start) && pomo_store_response "$response"; then
+    tmux set -g status-interval 1
+    tmux display-message 'POMODORO started!!'
+else
+    tmux display-message 'Timer start failed'
+fi

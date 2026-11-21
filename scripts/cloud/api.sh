@@ -28,7 +28,7 @@ pomo_request() {
 }
 
 pomo_store_response() {
-    local response=$1 temp
+    local response=$1 temp title start flag
     umask 077
     temp=$(mktemp "$POMO_ROOT/.pomo-state.XXXXXX") || return 1
     if ! printf '%s' "$response" | jq -ec --argjson fetchedAt "$(date +%s)" \
@@ -37,5 +37,12 @@ pomo_store_response() {
         return 1
     fi
     mv "$temp" "$POMO_STATE"
+    title=$(jq -r '.sessionName // ""' "$POMO_STATE")
+    start=$(jq -r '(.startedAtMillis // 0) / 1000 | floor' "$POMO_STATE")
+    flag=0
+    (( start > 0 )) && flag=1
+    tmux set-environment -g POMODORO_SESSION_TITLE "$title" >/dev/null 2>&1 || true
+    tmux set-environment -g POMODORO_START_UNIXTIME "$start" >/dev/null 2>&1 || true
+    tmux set-environment -g POMODORO_SESSION_FLAG "$flag" >/dev/null 2>&1 || true
     tmux refresh-client -S >/dev/null 2>&1 || true
 }
