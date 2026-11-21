@@ -30,7 +30,7 @@ show_time() {
         printf '%s\n' '--:--'
         return
     fi
-    local duration start stopped server fetched elapsed remaining seconds prefix=''
+    local duration start stopped server fetched elapsed remaining finished
     read -r duration start stopped server fetched < <(
         jq -r '[.durationSeconds, (.startedAtMillis // -1), (.stoppedElapsedMillis // 0), .serverNowMillis, .fetchedAtSeconds] | @tsv' "$POMO_STATE"
     )
@@ -41,13 +41,21 @@ show_time() {
     fi
     (( elapsed < 0 )) && elapsed=0
     remaining=$(( duration - elapsed ))
-    if (( remaining < 0 )); then
-        prefix='+'
-        seconds=$(( -remaining ))
+    if (( start < 0 )); then
+        pomo_set_color green
+        finished=$(jq -r '.finishedAtMillis // empty' "$POMO_STATE")
+        if [[ -n $finished ]]; then
+            pomo_format_time "$(( finished / 1000 ))"
+        else
+            printf '%s\n' '--:--'
+        fi
+    elif (( remaining <= 0 )); then
+        pomo_set_color green
+        pomo_format_time "$(( start / 1000 + duration ))"
     else
-        seconds=$remaining
+        pomo_set_color brightred
+        printf '%02d:%02d\n' "$((remaining / 60))" "$((remaining % 60))"
     fi
-    printf '%s%02d:%02d\n' "$prefix" "$((seconds / 60))" "$((seconds % 60))"
 }
 
 case "$COMMAND" in
@@ -66,7 +74,9 @@ case "$COMMAND" in
         ;;
     name) [[ -f $POMO_STATE ]] && jq -r '.sessionName // ""' "$POMO_STATE" ;;
     color)
-        if [[ -f $POMO_STATE ]] && jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+        if [[ -f $POMO_STATE ]] && jq -e --argjson now "$(date +%s)" \
+            '.startedAtMillis != null and
+             (.serverNowMillis + ($now - .fetchedAtSeconds) * 1000 < .startedAtMillis + .durationSeconds * 1000)' "$POMO_STATE" >/dev/null; then
             printf '%s\n' brightred
         else
             printf '%s\n' green

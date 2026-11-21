@@ -31,12 +31,35 @@ pomo_record_sync_attempt() {
     printf '%s\n' "$(date +%s)" > "$POMO_ROOT/.pomo-last-attempt"
 }
 
+pomo_set_color() {
+    local color=$1
+    if [[ $(tmux show-option -gv @pomo_color 2>/dev/null) != "$color" ]]; then
+        tmux set-option -gq @pomo_color "$color" >/dev/null 2>&1 || true
+    fi
+}
+
+pomo_format_time() {
+    date -r "$1" +%H:%M 2>/dev/null || date -d "@$1" +%H:%M
+}
+
 pomo_store_response() {
     local response=$1 temp title start flag color
     umask 077
     temp=$(mktemp "$POMO_ROOT/.pomo-state.XXXXXX") || return 1
-    if ! printf '%s' "$response" | jq -ec --argjson fetchedAt "$(date +%s)" \
-        'select(has("durationSeconds") and has("startedAtMillis") and has("stoppedElapsedMillis")) + {fetchedAtSeconds: $fetchedAt}' > "$temp"; then
+    local previous='{}'
+    [[ ! -f $POMO_STATE ]] || previous=$(cat "$POMO_STATE")
+    if ! printf '%s' "$response" | jq -ec --argjson fetchedAt "$(date +%s)" --argjson previous "$previous" \
+        'select(has("durationSeconds") and has("startedAtMillis") and has("stoppedElapsedMillis"))
+        | . + {fetchedAtSeconds: $fetchedAt}
+        | if .startedAtMillis != null then .
+          elif .stoppedAtMillis != null then . + {finishedAtMillis: .stoppedAtMillis}
+          elif $previous.startedAtMillis != null then
+            . + {finishedAtMillis: ($previous.startedAtMillis + ([.stoppedElapsedMillis, ($previous.durationSeconds * 1000)] | min))}
+          elif $previous.finishedAtMillis != null then
+            . + {finishedAtMillis: $previous.finishedAtMillis}
+          elif (.stoppedElapsedMillis // 0) > 0 then
+            . + {finishedAtMillis: .serverNowMillis}
+          else . end' > "$temp"; then
         rm -f "$temp"
         return 1
     fi
@@ -51,13 +74,11 @@ pomo_store_response() {
     if [[ $(tmux show-option -gv @pomo_name 2>/dev/null) != "$title" ]]; then
         tmux set-option -gq @pomo_name "$title" >/dev/null 2>&1 || true
     fi
-    if (( flag )); then
+    if (( flag )) && jq -e '.serverNowMillis < (.startedAtMillis + .durationSeconds * 1000)' "$POMO_STATE" >/dev/null; then
         color=brightred
     else
         color=green
     fi
-    if [[ $(tmux show-option -gv @pomo_color 2>/dev/null) != "$color" ]]; then
-        tmux set-option -gq @pomo_color "$color" >/dev/null 2>&1 || true
-    fi
+    pomo_set_color "$color"
     tmux refresh-client -S >/dev/null 2>&1 || true
 }
