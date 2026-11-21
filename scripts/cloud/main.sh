@@ -1,168 +1,66 @@
 #!/usr/bin/env bash
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMAND=$1
-CONFIG=$HOME/.config/pomo
-ENDPOINT_URL=$(jq -r .endpoint "$CONFIG")
-INTERVAL=$(jq -r .interval "$CONFIG")
+. "$CURRENT_DIR/api.sh" || exit 1
+COMMAND=${1:-}
 
-insert_end_time() {
-	curl -s ${ENDPOINT_URL}/api/pomo/stop 2&>1 /dev/null &
-	# TMUX変数にセッション終了時刻を保存
-	tmux set-environment -g POMODORO_FINISHED_TIME $(date +%H:%M)
+sync_state() {
+    local response
+    response=$(pomo_request GET timer) && pomo_store_response "$response"
 }
 
-update_interval_by_stop() {
-	# 変更しない
-	# tmux set -g status-interval 1
-	:
+maybe_sync() {
+    local last=0 now
+    if [[ -f $POMO_STATE ]]; then
+        last=$(jq -r '.fetchedAtSeconds // 0' "$POMO_STATE" 2>/dev/null) || last=0
+    fi
+    now=$(date +%s)
+    if (( now - last >= 15 )); then
+        sync_state >/dev/null 2>&1 || true
+    fi
 }
 
-update_interval_by_start() {
-	TMUX変数でセッションフラグを伸ばす
-	tmux set -g status-interval 1
+show_time() {
+    maybe_sync
+    if [[ ! -f $POMO_STATE ]]; then
+        printf '%s\n' '--:--'
+        return
+    fi
+    local duration start stopped server fetched elapsed remaining seconds prefix=''
+    read -r duration start stopped server fetched < <(
+        jq -r '[.durationSeconds, (.startedAtMillis // -1), (.stoppedElapsedMillis // 0), .serverNowMillis, .fetchedAtSeconds] | @tsv' "$POMO_STATE"
+    )
+    if (( start >= 0 )); then
+        elapsed=$(( (server - start) / 1000 + $(date +%s) - fetched ))
+    else
+        elapsed=$(( stopped / 1000 ))
+    fi
+    (( elapsed < 0 )) && elapsed=0
+    remaining=$(( duration - elapsed ))
+    if (( remaining < 0 )); then
+        prefix='+'
+        seconds=$(( -remaining ))
+    else
+        seconds=$remaining
+    fi
+    printf '%s%02d:%02d\n' "$prefix" "$((seconds / 60))" "$((seconds % 60))"
 }
 
-sync() {
-	local CURRENT_SESSION=$(curl -s ${ENDPOINT_URL}/api/pomo/now)
-
-	if [ "$CURRENT_SESSION" == "" ]; then
-		exit 0
-	else
-		local SESSION_TITLE=$(echo $CURRENT_SESSION | jq -r '.title // ""')
-		# TMUX変数でセッションタイトルを保存
-		tmux set-environment -g POMODORO_SESSION_TITLE "$SESSION_TITLE"
-		# TMUX変数でセッション開始時刻を保存
-		local START_UNIXTIME=$(echo $CURRENT_SESSION | jq -r '.startUnixtime // 0')
-		tmux set-environment -g POMODORO_START_UNIXTIME $START_UNIXTIME
-
-		# 実行中フラグ - startUnixtime > 0 なら実行中
-		local CURRENT_FLAG=0
-		[ "$START_UNIXTIME" -gt 0 ] && CURRENT_FLAG=1
-		tmux set-environment -g POMODORO_SESSION_FLAG $CURRENT_FLAG
-	fi
-	tmux refresh-client -S
-}
-
-overwrite() {
-	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
-	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=0" ]; then
-		# セッション中でないなら警告して終了
-		tmux display-message "Session has not started."
-		exit 0
-	fi
-
-	# TMUX run-shellの引数でセッション名を指定
-	tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
-}
-
-get_time() {
-	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
-	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=1" ]; then
-		# セッション中は時間差分を取得
-		get_current_session_time_diff
-	else
-		# セッション終了後
-		local FINISHED_TIME=$(tmux show-environment -g POMODORO_FINISHED_TIME | sed 's/POMODORO_FINISHED_TIME=//')
-		echo $FINISHED_TIME
-	fi
-}
-
-get_current_session_time_diff() {
-	local START_UNIXTIME=$(tmux show-environment -g POMODORO_START_UNIXTIME | sed 's/POMODORO_START_UNIXTIME=//')
-
-	local ELAPSED=$(($CURRENT_UNIXTIME - $START_UNIXTIME))
-
-	# 経過時間を表示
-	echo $ELAPSED | gawk '{print strftime("%M:%S",$1)}'
-}
-
-get_current_session_title() {
-	local TITLE=$(tmux show-environment -g POMODORO_SESSION_TITLE | sed 's/POMODORO_SESSION_TITLE=//')
-	echo "$TITLE"
-}
-
-post_stop() {
-	update_interval_by_stop
-	# TMUX変数でセッションフラグを落とす
-	tmux set-environment -g POMODORO_SESSION_FLAG 0
-	tmux refresh-client -S
-}
-
-end_session() {
-	tmux display-message "POMODORO finished!!!"
-	tmux clock
-	insert_end_time
-	post_stop
-}
-
-stop_session_confirm() {
-	tmux command-prompt -p "Do you want stop a Pomodoro Session?(press Enter or CTRL-C):" "run-shell '$CURRENT_DIR/main.sh stop_ok'"
-}
-
-stop_session() {
-	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
-	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=0" ]; then
-		# セッション中でないなら警告して終了
-		tmux display-message "Session has not started."
-		exit 0
-	fi
-	tmux display-message "POMODORO stoped!!!"
-	insert_end_time
-	post_stop
-}
-
-start_session() {
-	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
-	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=1" ]; then
-		# セッション中なら警告して終了
-		tmux display-message "Session has already started."
-		exit 0
-	fi
-
-	# TMUX run-shellの引数でセッション名を指定
-	tmux command-prompt -p "POMODORO:" "run-shell '$CURRENT_DIR/session-init.sh \"%%\"'"
-}
-
-get_color() {
-	local SESSION_FLAG=$(tmux show-environment -g POMODORO_SESSION_FLAG)
-	if [ $SESSION_FLAG == "POMODORO_SESSION_FLAG=1" ]; then
-		# セッション中は赤
-		echo "brightred"
-	else
-		# セッション終了後は緑
-		echo "green"
-	fi
-}
-
-main() {
-	# グローバル変数
-	CURRENT_UNIXTIME=$(date +%s)
-
-	if [ "$COMMAND" = "start" ]; then
-		start_session
-	elif [ "$COMMAND" == "stop" ]; then
-		stop_session_confirm
-	elif [ "$COMMAND" == "stop_ok" ]; then
-		stop_session
-	elif [ "$COMMAND" == "sync" ]; then
-		sync
-	elif [ "$COMMAND" == "overwrite" ]; then
-		overwrite
-	elif [ "$COMMAND" == "time" ]; then
-		get_time
-	elif [ "$COMMAND" == "all" ]; then
-		get_all_session_log
-	elif [ "$COMMAND" == "color" ]; then
-		get_color
-	elif [ "$COMMAND" == "name" ]; then
-		get_current_session_title
-	fi
-
-	# INTERVAL秒毎にDB同期
-	if [ $(($CURRENT_UNIXTIME % $INTERVAL)) -eq 0 ]; then
-		sync
-	fi
-
-}
-
-main
+case "$COMMAND" in
+    time) show_time ;;
+    name) [[ -f $POMO_STATE ]] && jq -r '.sessionName // ""' "$POMO_STATE" ;;
+    color)
+        if [[ -f $POMO_STATE ]] && jq -e '.startedAtMillis != null' "$POMO_STATE" >/dev/null; then
+            printf '%s\n' brightred
+        else
+            printf '%s\n' green
+        fi
+        ;;
+    sync) sync_state || tmux display-message 'Timer sync failed' ;;
+    start) "$CURRENT_DIR/session-init.sh" ;;
+    stop)
+        local_response=$(pomo_request POST stop) && pomo_store_response "$local_response" || tmux display-message 'Timer stop failed'
+        ;;
+    overwrite)
+        tmux command-prompt -p 'Session name:' "run-shell '$CURRENT_DIR/session-overwrite.sh \"%%\"'"
+        ;;
+esac

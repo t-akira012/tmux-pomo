@@ -1,12 +1,27 @@
 #!/usr/bin/env bash
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. $CURRENT_DIR/scripts/helpers.sh
+. "$CURRENT_DIR/scripts/helpers.sh"
 
-# cloud or local
-use="cloud"
+if [ ! -f "$CURRENT_DIR/.env" ]; then
+    tmux display-message 'tmux-pomo: create .env from .env.example'
+    exit 1
+fi
+. "$CURRENT_DIR/.env"
+case "${USE_LOCAL:-false}" in
+    true) use=local ;;
+    false)
+        use=cloud
+        "$CURRENT_DIR/scripts/cloud/prepare_env.sh" || exit 1
+        ;;
+    *) tmux display-message 'tmux-pomo: USE_LOCAL must be true or false'; exit 1 ;;
+esac
 
 tmux bind-key O run-shell "$CURRENT_DIR/scripts/${use}/main.sh overwrite"
-tmux bind-key o run-shell "$CURRENT_DIR/scripts/${use}/main.sh sync"
+if [ "$use" = cloud ]; then
+    tmux bind-key o run-shell "$CURRENT_DIR/scripts/cloud/main.sh sync"
+else
+    tmux unbind-key o
+fi
 tmux bind-key p run-shell "$CURRENT_DIR/scripts/${use}/main.sh start"
 tmux bind-key P run-shell "$CURRENT_DIR/scripts/${use}/main.sh stop"
 
