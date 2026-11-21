@@ -4,9 +4,7 @@ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMAND=${1:-}
 
 sync_state() {
-    local response
-    pomo_record_sync_attempt || return 1
-    response=$(pomo_request GET timer) && pomo_store_response "$response"
+    pomo_sync_state
 }
 
 maybe_sync() {
@@ -51,6 +49,7 @@ show_time() {
         fi
     elif (( remaining <= 0 )); then
         pomo_set_color green
+        tmux set-environment -g POMODORO_SESSION_FLAG 0 >/dev/null 2>&1 || true
         pomo_format_time "$(( start / 1000 + duration ))"
     else
         pomo_set_color brightred

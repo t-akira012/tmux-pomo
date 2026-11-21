@@ -31,6 +31,18 @@ pomo_record_sync_attempt() {
     printf '%s\n' "$(date +%s)" > "$POMO_ROOT/.pomo-last-attempt"
 }
 
+pomo_sync_state() {
+    local response
+    pomo_record_sync_attempt || return 1
+    response=$(pomo_request GET timer) && pomo_store_response "$response" || return 1
+    # The backend can keep startedAtMillis set after the deadline. Finish it
+    # before allowing another start, rather than only changing the display.
+    if jq -e '.startedAtMillis != null and
+        .serverNowMillis >= (.startedAtMillis + .durationSeconds * 1000)' "$POMO_STATE" >/dev/null; then
+        response=$(pomo_request POST stop) && pomo_store_response "$response" || return 1
+    fi
+}
+
 pomo_set_color() {
     local color=$1
     if [[ $(tmux show-option -gv @pomo_color 2>/dev/null) != "$color" ]]; then
@@ -67,14 +79,17 @@ pomo_store_response() {
     title=$(jq -r '.sessionName // ""' "$POMO_STATE")
     start=$(jq -r '(.startedAtMillis // 0) / 1000 | floor' "$POMO_STATE")
     flag=0
-    (( start > 0 )) && flag=1
+    if jq -e '.startedAtMillis != null and
+        .serverNowMillis < (.startedAtMillis + .durationSeconds * 1000)' "$POMO_STATE" >/dev/null; then
+        flag=1
+    fi
     tmux set-environment -g POMODORO_SESSION_TITLE "$title" >/dev/null 2>&1 || true
     tmux set-environment -g POMODORO_START_UNIXTIME "$start" >/dev/null 2>&1 || true
     tmux set-environment -g POMODORO_SESSION_FLAG "$flag" >/dev/null 2>&1 || true
     if [[ $(tmux show-option -gv @pomo_name 2>/dev/null) != "$title" ]]; then
         tmux set-option -gq @pomo_name "$title" >/dev/null 2>&1 || true
     fi
-    if (( flag )) && jq -e '.serverNowMillis < (.startedAtMillis + .durationSeconds * 1000)' "$POMO_STATE" >/dev/null; then
+    if (( flag )); then
         color=brightred
     else
         color=green
