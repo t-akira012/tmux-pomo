@@ -11,9 +11,11 @@ if [[ -z ${TIMER_FQDN:-} || ! ${TIMER_ACCESS_PATH:-} =~ ^[0-9a-f]{24}$ ]]; then
     return 1 2>/dev/null || exit 1
 fi
 pomo_request() {
-    local method=$1 route=$2 body=${3:-}
+    local method=$1 route=$2 body=${3:-} body_file=${4:-}
     local url="https://${TIMER_FQDN}/${TIMER_ACCESS_PATH}/api/${route}"
-    if [[ -n $body ]]; then
+    if [[ -n $body_file ]]; then
+        curl --fail --silent --show-error --max-time 5 -X "$method" -H 'Content-Type: application/json' -H 'Cache-Control: no-store' --data-binary "@$body_file" "$url"
+    elif [[ -n $body ]]; then
         curl --fail --silent --show-error --max-time 5 -X "$method" -H 'Content-Type: application/json' -H 'Cache-Control: no-store' --data "$body" "$url"
     else
         curl --fail --silent --show-error --max-time 5 -X "$method" -H 'Cache-Control: no-store' "$url"

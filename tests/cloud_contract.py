@@ -134,6 +134,7 @@ else:raise SystemExit(2)
         binds={line[1]:line[3] for line in self.log() if line[0]=='bind-key'}
         for key,command in [('p','start'),('P','stop'),('O','overwrite'),('o','sync')]:
             self.assertTrue(binds[key].endswith('/main.sh '+command))
+        self.assertTrue(binds['M'].endswith('/scripts/cloud/memo.sh'))
         status=[line[-1] for line in self.log() if line[:3]==['set-option','-gq','status-right']][-1]
         self.assertIn('/scripts/cloud/main.sh time)',status)
         self.assertIn('#{@pomo_name}',status);self.assertIn('#{@pomo_color}',status)
@@ -151,6 +152,7 @@ else:raise SystemExit(2)
         binds={line[1]:line[3] for line in self.log() if line[0]=='bind-key'}
         for key,command in [('p','start'),('P','stop'),('O','overwrite')]:
             self.assertTrue(binds[key].endswith('/scripts/local/main.sh '+command))
+        self.assertNotIn('M',binds)
         self.assertEqual(binds['o'],'tmux refresh-client -S')
         self.assertEqual(self.log('api.log'),[])
 

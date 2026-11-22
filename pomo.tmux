@@ -19,6 +19,7 @@ esac
 tmux bind-key O run-shell "$CURRENT_DIR/scripts/${use}/main.sh overwrite"
 if [ "$use" = cloud ]; then
     tmux bind-key o run-shell "$CURRENT_DIR/scripts/cloud/main.sh sync"
+    tmux bind-key M run-shell "$CURRENT_DIR/scripts/cloud/memo.sh"
     tmux set -g status-interval 1
 else
     tmux bind-key o run-shell 'tmux refresh-client -S'
